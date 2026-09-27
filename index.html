@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin V2 - Smart Board Recycle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <nav class="bg-green-600 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">♻️ Dashboard Eksekutif: Smart Board Recycle</h1>
+            <span class="text-sm bg-green-800 px-3 py-1 rounded-full animate-pulse" id="status-sambungan">Menyambung ke Blynk...</span>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6 mt-4">
+        
+        <h2 class="text-xl font-bold text-gray-700 mb-4">Prestasi Harian & Impak Alam Sekitar (Data Live)</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                <h3 class="text-gray-500 text-sm font-semibold uppercase">Jumlah Beg Diterima</h3>
+                <p class="text-4xl font-bold text-blue-600 mt-2"><span id="paparan-beg">0</span> <span class="text-lg text-gray-400 font-normal">beg</span></p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-400">
+                <h3 class="text-gray-500 text-sm font-semibold uppercase">Penjimatan Tenaga</h3>
+                <p class="text-4xl font-bold text-yellow-500 mt-2"><span id="paparan-tenaga">0.0</span> <span class="text-lg text-gray-400 font-normal">kWh</span></p>
+                <p class="text-xs text-gray-500 mt-2">*Kiraan: 1 beg = 0.5 kWh</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+                <h3 class="text-gray-500 text-sm font-semibold uppercase">Kapasiti Rod Kiri</h3>
+                <p class="text-2xl font-bold text-gray-800 mt-2"><span id="teks-kiri">0</span>%</p>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                    <div id="bar-kiri" class="bg-green-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+                <h3 class="text-gray-500 text-sm font-semibold uppercase">Kapasiti Rod Kanan</h3>
+                <p class="text-2xl font-bold text-gray-800 mt-2"><span id="teks-kanan">0</span>%</p>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                    <div id="bar-kanan" class="bg-red-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MASUKKAN TOKEN BLYNK AWAK DI SINI
+        const BLYNK_TOKEN = "XHYIDZQ-cNCH1gxmglOz9_bpO4rZWug7"; 
+        
+        // Pautan asas Blynk API
+        const BLYNK_URL = `https://blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&`;
+
+        // Fungsi untuk ambil data
+        async function dapatkanDataBlynk() {
+            try {
+                // Tarik data V1, V2, V3, V4 serentak
+                let resV1 = await fetch(BLYNK_URL + "V1"); // Jumlah Beg
+                let resV2 = await fetch(BLYNK_URL + "V2"); // Kapasiti Kiri
+                let resV3 = await fetch(BLYNK_URL + "V3"); // Kapasiti Kanan
+                let resV4 = await fetch(BLYNK_URL + "V4"); // Tenaga
+
+                let beg = await resV1.text();
+                let kiri = await resV2.text();
+                let kanan = await resV3.text();
+                let tenaga = await resV4.text();
+
+                // Kemas kini nombor di HTML
+                document.getElementById("paparan-beg").innerText = beg;
+                document.getElementById("paparan-tenaga").innerText = parseFloat(tenaga).toFixed(1);
+                
+                // Kemas kini peratusan dan lebar bar Rod Kiri
+                document.getElementById("teks-kiri").innerText = kiri;
+                document.getElementById("bar-kiri").style.width = kiri + "%";
+                // Tukar warna bar jika hampir penuh (>80%)
+                document.getElementById("bar-kiri").className = kiri > 80 ? "bg-red-500 h-2.5 rounded-full transition-all duration-500" : "bg-green-500 h-2.5 rounded-full transition-all duration-500";
+
+                // Kemas kini peratusan dan lebar bar Rod Kanan
+                document.getElementById("teks-kanan").innerText = kanan;
+                document.getElementById("bar-kanan").style.width = kanan + "%";
+                // Tukar warna bar jika hampir penuh (>80%)
+                document.getElementById("bar-kanan").className = kanan > 80 ? "bg-red-500 h-2.5 rounded-full transition-all duration-500" : "bg-green-500 h-2.5 rounded-full transition-all duration-500";
+
+                document.getElementById("status-sambungan").innerText = "Data Live Aktif 🟢";
+                document.getElementById("status-sambungan").className = "text-sm bg-green-800 px-3 py-1 rounded-full";
+
+            } catch (error) {
+                console.error("Gagal tarik data:", error);
+                document.getElementById("status-sambungan").innerText = "Tiada Sambungan 🔴";
+                document.getElementById("status-sambungan").className = "text-sm bg-red-600 px-3 py-1 rounded-full";
+            }
+        }
+
+        // Panggil fungsi ini setiap 3 saat (3000 ms)
+        setInterval(dapatkanDataBlynk, 3000);
+        
+        // Panggil sekali sewaktu fail baru dibuka
+        dapatkanDataBlynk();
+    </script>
+</body>
+</html>
